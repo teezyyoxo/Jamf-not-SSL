@@ -11,6 +11,9 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.9.1a
+# - Fixed API endpoint for obtaining token.
+# - NEXT: Fix how the script obtains the managementId. Do we use serial number? Client ID? That is the question...
 # Version 4.9a
 # - Fixed the API authentication issue – was using /v1/auth instead of /v1/oauth. Derp.
 # - Will need to correct the API endpoint in a future release.
@@ -69,28 +72,32 @@ fi
 echo "API Client ID: $API_CLIENT_ID"
 echo "API Client Secret: $API_CLIENT_SECRET"
 
-# Function to get a Jamf Pro API token using OAuth2 (Client Credentials Grant)
+# Function to get a Jamf Pro API token using OAuth2 (/api/v1/oauth/token)
 get_jamf_token() {
   local response
+  # Debugging: Show full curl command being sent
+  echo "Requesting token from Jamf Pro API..."
+  echo "curl -X POST '$JAMF_PRO_URL/api/v1/oauth/token' -H 'Content-Type: application/x-www-form-urlencoded' -d 'client_id=$API_CLIENT_ID' -d 'client_secret=$API_CLIENT_SECRET' -d 'grant_type=client_credentials'"
+
   response=$(curl -s -X POST "$JAMF_PRO_URL/api/v1/oauth/token" \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     -d "client_id=$API_CLIENT_ID" \
     -d "client_secret=$API_CLIENT_SECRET" \
     -d 'grant_type=client_credentials')
-  
-  # DEBUGGING: Print raw response
+
+  # Debugging: Print raw response from the token request
   echo "Response from Jamf Pro API (Token Request): $response"
-  
+
   # Extract the access token using jq
   token=$(echo "$response" | jq -r '.access_token')
-  
+
   # DEBUGGING: Print the token if available
   if [[ -n "$token" ]]; then
     echo "Access token retrieved: $token"
   else
     echo "Failed to retrieve access token"
   fi
-  
+
   echo "$token"
 }
 
