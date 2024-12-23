@@ -11,6 +11,8 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.3a
+# - Added more debugging.
 # Version 4.2a
 # - Fixed mistyped variables in get_jamf_token function.
 # Version 4.1a
