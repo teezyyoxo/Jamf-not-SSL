@@ -11,6 +11,8 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.6a
+# - Removed extraneous shebang.
 # Version 4.5a
 # - Variable name fix.
 # Version 4.4a
@@ -33,8 +35,6 @@
 # - No more plaintext credentials. Switched to using a private .env file.
 # Version 1.0
 # - Initial release.
-
-#!/bin/bash
 
 # Variable declaration 2.0 – .env file, no more plain text!
 ENV_FILE="self-service-laps-request.env"
