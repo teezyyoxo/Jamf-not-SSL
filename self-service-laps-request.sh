@@ -11,6 +11,8 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.7a
+# - You guessed it - more debugging.
 # Version 4.6a
 # - Removed extraneous shebang.
 # Version 4.5a
@@ -56,6 +58,10 @@ if [[ -z "$JAMF_PRO_URL" || -z "$API_CLIENT_ID" || -z "$API_CLIENT_SECRET" || -z
   echo "  - LAPS_ADMIN_ACCOUNT"
   exit 1
 fi
+
+# Debugging: Print out the API client credentials to check if they're loaded
+echo "API Client ID: $API_CLIENT_ID"
+echo "API Client Secret: $API_CLIENT_SECRET"
 
 # Function to get a Jamf Pro API token using OAuth2 (Client Credentials Grant)
 get_jamf_token() {
