@@ -58,6 +58,9 @@ get_jamf_token() {
     -d "client_id=$API_CLIENT_ID" \
     -d "client_secret=$API_CLIENT_SECRET" \
     -d "grant_type=client_credentials")
+  
+  # DEBUGGING: Print raw response
+  echo "Response from Jamf Pro API: $response"
   echo "$response" | grep -o '"token":"[^"]*' | cut -d'"' -f4
 }
 
@@ -80,6 +83,9 @@ fi
 COMPUTER_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
   "$JAMF_PRO_URL/api/v1/computers-inventory?filter=serialNumber%20eq%20'$SERIAL_NUMBER'" | \
   grep -o '"id":[0-9]*' | cut -d':' -f2)
+    # DEBUGGING: Print raw response
+    echo "Response from Jamf Pro for computer ID query: $response"
+    COMPUTER_ID=$(echo "$response" | grep -o '"id":[0-9]*' | cut -d':' -f2)
 
 if [[ -z "$COMPUTER_ID" ]]; then
   echo "Failed to retrieve the Management ID for serial number $SERIAL_NUMBER."
