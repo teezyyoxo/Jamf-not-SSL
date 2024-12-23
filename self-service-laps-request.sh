@@ -11,6 +11,12 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.9.2a
+# - Script now requires root because it includes "jamf recon" and checks for this immediately upon execution.
+# Version 4.9.1a
+# - Added RECON_OUTPUT variable to capture the (truncated) Jamf Pro Computer ID from "sudo jamf recon".
+# Version 4.9a
+# - Switched from using serial number to grabbing the Jamf Pro Computer ID from "jamf recon" and using that with the API.
 # Version 4.8a
 # - Split script into two: one that uses API credentials, and one that doesn't. For my sanity.
 # Version 4.7a
@@ -39,6 +45,12 @@
 # - No more plaintext credentials. Switched to using a private .env file.
 # Version 1.0
 # - Initial release.
+
+# Check if the script is being run as root. If not, exit and ask to run with sudo.
+if [ "$(id -u)" -ne 0 ]; then
+  echo "This script must be run as root. Please use 'sudo' to run this script."
+  exit 1
+fi
 
 # Variable declaration 2.0 – .env file, no more plain text!
 ENV_FILE="self-service-laps-request.env"
@@ -87,11 +99,26 @@ get_jamf_token() {
   echo "$token"
 }
 
-# Get the serial number of the current Mac
-SERIAL_NUMBER=$(system_profiler SPHardwareDataType | awk '/Serial Number/{print $4}')
+# Request password for sudo (will trigger sudo password prompt)
+echo "Please enter your password to proceed with the Jamf recon process."
+sudo echo "Sudo password accepted."
 
-if [[ -z "$SERIAL_NUMBER" ]]; then
-  echo "Failed to retrieve the serial number of the current Mac."
+# Print message to wait for Jamf sync
+echo "Please wait for Jamf to sync. This should take about 15 seconds."
+
+# Run the jamf recon command and capture the output
+RECON_OUTPUT=$(sudo jamf recon)
+
+# Debugging: Print the full recon output
+echo "Full recon output:"
+echo "$RECON_OUTPUT"
+
+# Extract the computer ID from the output using sed
+COMPUTER_ID=$(echo "$RECON_OUTPUT" | sed -n 's/.*<computer_id>\([0-9]\+\)<\/computer_id>.*/\1/p')
+
+# Check if the computer ID was retrieved
+if [[ -z "$COMPUTER_ID" ]]; then
+  echo "Failed to retrieve the Jamf Pro Computer ID for this machine."
   exit 1
 fi
 
@@ -104,20 +131,6 @@ fi
 
 # DEBUGGING: Print token for verification
 echo "Using API Token: $TOKEN"
-
-COMPUTER_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  "$JAMF_PRO_URL/api/v1/computers-inventory?filter=serialNumber%20eq%20\"$SERIAL_NUMBER\"")
-
-# Debugging: Print the full response to understand the issue
-echo "Response from Jamf Pro for computer ID query: $COMPUTER_ID"
-
-# Now extract the ID
-COMPUTER_ID=$(echo "$COMPUTER_ID" | jq -r '.data[0].id')
-
-if [[ -z "$COMPUTER_ID" ]]; then
-  echo "Failed to retrieve the Management ID for serial number $SERIAL_NUMBER."
-  exit 1
-fi
 
 # Retrieve the LAPS password for the specified computer and admin account
 PASSWORD=$(curl -s -H "Authorization: Bearer $TOKEN" \
@@ -142,7 +155,7 @@ osascript -e 'display notification "The LAPS password has been copied to the cli
 # Construct the Microsoft Teams webhook payload
 TEAMS_PAYLOAD=$(cat <<EOF
 {
-  "text": "LAPS Password for account '$LAPS_ADMIN_ACCOUNT' on computer with serial '$SERIAL_NUMBER': $PASSWORD"
+  "text": "LAPS Password for account '$LAPS_ADMIN_ACCOUNT' on computer with ID '$COMPUTER_ID': $PASSWORD"
 }
 EOF
 )
