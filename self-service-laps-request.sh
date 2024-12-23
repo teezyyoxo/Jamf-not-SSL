@@ -11,6 +11,10 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.1a
+# - Prefixed CLIENT_ID and CLIENT_SECRET with "API_" (i.e., API_CLIENT_ID).
+# Version 4.0a
+# - Fashionably late: switched to OAuth2.
 # Version 3.0a
 # - FOR TESTING ONLY: Added an osascript line to produce a Push Notification to the user indicating that the password was copied to the clipboard.
 # - MAY REMOVE IN FUTURE VERSION(S).
@@ -35,20 +39,23 @@ else
 fi
 
 # .env variable validation
-if [[ -z "$JAMF_PRO_URL" || -z "$JAMF_API_USER" || -z "$JAMF_API_PASS" || -z "$TEAM_WEBHOOK_URL" || -z "$LAPS_ADMIN_ACCOUNT" ]]; then
+if [[ -z "$JAMF_PRO_URL" || -z "$API_CLIENT_ID" || -z "$API_CLIENT_SECRET" || -z "$TEAM_WEBHOOK_URL" || -z "$LAPS_ADMIN_ACCOUNT" ]]; then
   echo "One or more required environment variables are missing. Please ensure the following variables are set in $ENV_FILE or exported:"
   echo "  - JAMF_PRO_URL"
-  echo "  - JAMF_API_USER"
-  echo "  - JAMF_API_PASS"
+  echo "  - API_CLIENT_ID"
+  echo "  - API_CLIENT_SECRET"
   echo "  - TEAM_WEBHOOK_URL"
   echo "  - LAPS_ADMIN_ACCOUNT"
   exit 1
 fi
 
-# Function to get a Jamf Pro API token
+# Function to get a Jamf Pro API token using OAuth2 (Client Credentials Grant)
 get_jamf_token() {
   local response
-  response=$(curl -s -u "$JAMF_API_USER:$JAMF_API_PASS" -X POST "$JAMF_PRO_URL/api/v1/auth/token")
+  response=$(curl -s -X POST "$JAMF_PRO_URL/api/v1/auth/token" \
+    -d "API_CLIENT_ID=$API_CLIENT_ID" \
+    -d "API_CLIENT_SECRET=$API_CLIENT_SECRET" \
+    -d "grant_type=client_credentials")
   echo "$response" | grep -o '"token":"[^"]*' | cut -d'"' -f4
 }
 
