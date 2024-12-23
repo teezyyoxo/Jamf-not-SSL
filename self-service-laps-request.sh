@@ -11,6 +11,9 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.9.4a
+# - Fixed get_jamf_token function again to ensure the token value is non-empty.
+# - Changed ".access_token" to "".token".
 # Version 4.9.3a
 # - Fixed COMPUTER_ID variable logic (sed is actually insane).
 # Version 4.9.2a
@@ -82,20 +85,20 @@ echo "Jamf Pro Username: $JAMF_PRO_USERNAME"
 get_jamf_token() {
   local response
   response=$(curl -s -X POST "$JAMF_PRO_URL/api/v1/auth/token" \
-    -u "$JAMF_PRO_USERNAME:$JAMF_PRO_PASSWORD" \
-    -d 'grant_type=client_credentials')
+    -u "$JAMF_PRO_USERNAME:$JAMF_PRO_PASSWORD")
   
   # DEBUGGING: Print raw response
   echo "Response from Jamf Pro API (Token Request): $response"
   
-  # Extract the access token using jq
-  token=$(echo "$response" | jq -r '.access_token')
+  # Extract the access token
+  token=$(echo "$response" | jq -r '.token')
   
   # DEBUGGING: Print the token if available
-  if [[ -n "$token" ]]; then
+  if [[ -n "$token" && "$token" != "null" ]]; then
     echo "Access token retrieved: $token"
   else
     echo "Failed to retrieve access token"
+    token=""
   fi
   
   echo "$token"
