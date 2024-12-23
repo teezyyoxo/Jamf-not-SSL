@@ -11,6 +11,8 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.9.3a
+# - Fixed COMPUTER_ID variable logic (sed is actually insane).
 # Version 4.9.2a
 # - Script now requires root because it includes "jamf recon" and checks for this immediately upon execution.
 # Version 4.9.1a
@@ -114,7 +116,7 @@ echo "Full recon output:"
 echo "$RECON_OUTPUT"
 
 # Extract the computer ID from the output using sed
-COMPUTER_ID=$(echo "$RECON_OUTPUT" | sed -n 's/.*<computer_id>\([0-9]\+\)<\/computer_id>.*/\1/p')
+COMPUTER_ID=$(echo "$RECON_OUTPUT" | sed -n -E 's/.*<computer_id>([0-9]+)<\/computer_id>.*/\1/p')
 
 # Check if the computer ID was retrieved
 if [[ -z "$COMPUTER_ID" ]]; then
