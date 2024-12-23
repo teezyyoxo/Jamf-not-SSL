@@ -11,6 +11,8 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.2a
+# - Fixed mistyped variables in get_jamf_token function.
 # Version 4.1a
 # - Prefixed CLIENT_ID and CLIENT_SECRET with "API_" (i.e., API_CLIENT_ID).
 # Version 4.0a
@@ -53,8 +55,8 @@ fi
 get_jamf_token() {
   local response
   response=$(curl -s -X POST "$JAMF_PRO_URL/api/v1/auth/token" \
-    -d "API_CLIENT_ID=$API_CLIENT_ID" \
-    -d "API_CLIENT_SECRET=$API_CLIENT_SECRET" \
+    -d "client_id=$API_CLIENT_ID" \
+    -d "client_secret=$API_CLIENT_SECRET" \
     -d "grant_type=client_credentials")
   echo "$response" | grep -o '"token":"[^"]*' | cut -d'"' -f4
 }
