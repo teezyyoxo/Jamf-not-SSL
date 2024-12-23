@@ -11,6 +11,8 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.9.5a
+# - Now uses the correct API endpoint (/v2/local-admin-password/{client-management-id}/account/{username}/password)
 # Version 4.9.4a
 # - Fixed get_jamf_token function again to ensure the token value is non-empty.
 # - Changed ".access_token" to "".token".
@@ -82,26 +84,34 @@ fi
 echo "Jamf Pro Username: $JAMF_PRO_USERNAME"
 
 # Function to get a Jamf Pro API token using Basic Authentication
-get_jamf_token() {
+# Now uses the CORRECT API endpoint/call lol (/v2/local-admin-password/{client-management-id}/account/{LAPSaccountName}/password)
+get_laps_password() {
   local response
-  response=$(curl -s -X POST "$JAMF_PRO_URL/api/v1/auth/token" \
-    -u "$JAMF_PRO_USERNAME:$JAMF_PRO_PASSWORD")
-  
-  # DEBUGGING: Print raw response
-  echo "Response from Jamf Pro API (Token Request): $response"
-  
-  # Extract the access token
-  token=$(echo "$response" | jq -r '.token')
-  
-  # DEBUGGING: Print the token if available
-  if [[ -n "$token" && "$token" != "null" ]]; then
-    echo "Access token retrieved: $token"
+  local api_endpoint="$JAMF_PRO_URL/api/v2/local-admin-password/$CLIENT_MANAGEMENT_ID/account/$USERNAME/password"
+
+  echo "Querying Jamf Pro API for LAPS password..."
+
+  # Perform the API request
+  response=$(curl -s -X 'GET' \
+    "$api_endpoint" \
+    -H 'accept: application/json' \
+    -H "Authorization: Bearer $TOKEN")
+
+  # DEBUG: Print the raw response for troubleshooting
+  echo "Response from Jamf Pro for LAPS password query: $response"
+
+  # Extract the password from the response
+  laps_password=$(echo "$response" | jq -r '.password')
+
+  # Check if the password was successfully retrieved
+  if [[ -n "$laps_password" && "$laps_password" != "null" ]]; then
+    echo "LAPS password retrieved: $laps_password"
   else
-    echo "Failed to retrieve access token"
-    token=""
+    echo "Failed to retrieve the LAPS password for client management ID $CLIENT_MANAGEMENT_ID and account $USERNAME."
+    laps_password=""
   fi
-  
-  echo "$token"
+
+  echo "$laps_password"
 }
 
 # Request password for sudo (will trigger sudo password prompt)

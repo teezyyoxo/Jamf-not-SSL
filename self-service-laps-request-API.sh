@@ -11,6 +11,10 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.9a
+# - Fixed the API authentication issue – was using /v1/auth instead of /v1/oauth. Derp.
+# - Will need to correct the API endpoint in a future release.
+# - Development on the basic-auth script continues and has the corrected endpoint.
 # Version 4.8a
 # - Split script into two: one that uses API credentials, and one that doesn't. For my sanity.
 # Version 4.7a
@@ -68,7 +72,7 @@ echo "API Client Secret: $API_CLIENT_SECRET"
 # Function to get a Jamf Pro API token using OAuth2 (Client Credentials Grant)
 get_jamf_token() {
   local response
-  response=$(curl -s -X POST "$JAMF_PRO_URL/api/v1/auth/token" \
+  response=$(curl -s -X POST "$JAMF_PRO_URL/api/v1/oauth/token" \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     -d "client_id=$API_CLIENT_ID" \
     -d "client_secret=$API_CLIENT_SECRET" \
