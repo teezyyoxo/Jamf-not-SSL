@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# SELF SERVICE LAPS REQUEST (SSLR?) - BASIC
+# SELF SERVICE LAPS REQUEST (SSLR?) -- API version
 # This script masquerades as a Self Service item on macOS.
 # When this item's "Request" button is clicked, the script leverages the Jamf Pro API to
 # retrieve the current machine's LAPS password, and send it to a specified channel in
@@ -51,24 +51,27 @@ else
 fi
 
 # .env variable validation
-if [[ -z "$JAMF_PRO_URL" || -z "$JAMF_PRO_USERNAME" || -z "$JAMF_PRO_PASSWORD" || -z "$TEAM_WEBHOOK_URL" || -z "$LAPS_ADMIN_ACCOUNT" ]]; then
+if [[ -z "$JAMF_PRO_URL" || -z "$API_CLIENT_ID" || -z "$API_CLIENT_SECRET" || -z "$TEAM_WEBHOOK_URL" || -z "$LAPS_ADMIN_ACCOUNT" ]]; then
   echo "One or more required environment variables are missing. Please ensure the following variables are set in $ENV_FILE or exported:"
   echo "  - JAMF_PRO_URL"
-  echo "  - JAMF_PRO_USERNAME"
-  echo "  - JAMF_PRO_PASSWORD"
+  echo "  - API_CLIENT_ID"
+  echo "  - API_CLIENT_SECRET"
   echo "  - TEAM_WEBHOOK_URL"
   echo "  - LAPS_ADMIN_ACCOUNT"
   exit 1
 fi
 
-# Debugging: Print out the Jamf Pro credentials to check if they're loaded
-echo "Jamf Pro Username: $JAMF_PRO_USERNAME"
+# Debugging: Print out the API client credentials to check if they're loaded
+echo "API Client ID: $API_CLIENT_ID"
+echo "API Client Secret: $API_CLIENT_SECRET"
 
-# Function to get a Jamf Pro API token using Basic Authentication
+# Function to get a Jamf Pro API token using OAuth2 (Client Credentials Grant)
 get_jamf_token() {
   local response
   response=$(curl -s -X POST "$JAMF_PRO_URL/api/v1/auth/token" \
-    -u "$JAMF_PRO_USERNAME:$JAMF_PRO_PASSWORD" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -d "client_id=$API_CLIENT_ID" \
+    -d "client_secret=$API_CLIENT_SECRET" \
     -d 'grant_type=client_credentials')
   
   # DEBUGGING: Print raw response
@@ -105,14 +108,13 @@ fi
 # DEBUGGING: Print token for verification
 echo "Using API Token: $TOKEN"
 
+# Retrieve the computer ID (Management ID) using the serial number
 COMPUTER_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  "$JAMF_PRO_URL/api/v1/computers-inventory?filter=serialNumber%20eq%20\"$SERIAL_NUMBER\"")
-
-# Debugging: Print the full response to understand the issue
+  "$JAMF_PRO_URL/api/v1/computers-inventory?filter=serialNumber%20eq%20'$SERIAL_NUMBER'" | \
+  jq -r '.data[0].id')  # Use jq to parse JSON response
+  
+# DEBUGGING: Print raw response for computer ID query
 echo "Response from Jamf Pro for computer ID query: $COMPUTER_ID"
-
-# Now extract the ID
-COMPUTER_ID=$(echo "$COMPUTER_ID" | jq -r '.data[0].id')
 
 if [[ -z "$COMPUTER_ID" ]]; then
   echo "Failed to retrieve the Management ID for serial number $SERIAL_NUMBER."
