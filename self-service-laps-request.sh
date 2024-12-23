@@ -11,6 +11,12 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 3.0a
+# - FOR TESTING ONLY: Added an osascript line to produce a Push Notification to the user indicating that the password was copied to the clipboard.
+# - MAY REMOVE IN FUTURE VERSION(S).
+# Version 3.0
+# - Code cleanup/condensing
+# - Added automatic copying of the retrieved password to clipboard
 # Version 2.0
 # - No more plaintext credentials. Switched to using a private .env file.
 # Version 1.0
@@ -28,15 +34,14 @@ else
   exit 1
 fi
 
-# Variable validation
-if [[ -z "$JAMF_PRO_URL" || -z "$JAMF_API_USER" || -z "$JAMF_API_PASS" || -z "$TEAM_WEBHOOK_URL" ]]; then
-  echo "One or more required environment variables are missing in $ENV_FILE."
-  exit 1
-fi
-
-# Check if LAPS_ADMIN_ACCOUNT is set as an environment variable
-if [[ -z "$LAPS_ADMIN_ACCOUNT" ]]; then
-  echo "The LAPS_ADMIN_ACCOUNT environment variable is not set. Please define it in $ENV_FILE or export it before running the script."
+# .env variable validation
+if [[ -z "$JAMF_PRO_URL" || -z "$JAMF_API_USER" || -z "$JAMF_API_PASS" || -z "$TEAM_WEBHOOK_URL" || -z "$LAPS_ADMIN_ACCOUNT" ]]; then
+  echo "One or more required environment variables are missing. Please ensure the following variables are set in $ENV_FILE or exported:"
+  echo "  - JAMF_PRO_URL"
+  echo "  - JAMF_API_USER"
+  echo "  - JAMF_API_PASS"
+  echo "  - TEAM_WEBHOOK_URL"
+  echo "  - LAPS_ADMIN_ACCOUNT"
   exit 1
 fi
 
@@ -81,6 +86,12 @@ if [[ -z "$PASSWORD" ]]; then
   echo "Failed to retrieve the LAPS password for computer ID $COMPUTER_ID."
   exit 1
 fi
+
+# Automatically copy the LAPS password to the clipboard
+echo -n "$PASSWORD" | pbcopy
+echo "The LAPS password has been copied to the clipboard."
+# Send a push notification to the user indicating the password was copied
+osascript -e 'display notification "The LAPS password has been copied to the clipboard." with title "Jamf Self Service"'
 
 # Construct the Microsoft Teams webhook payload
 TEAMS_PAYLOAD=$(cat <<EOF
