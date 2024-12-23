@@ -6,15 +6,39 @@
 # retrieve the current machine's LAPS password, and send it to a specified channel in
 # Microsoft Teams for the ITS personnel to have ready prior to connecting remotely.
 
+# !!!!!!! IMPORTANT !!!!!!!
+# You MUST:
+# a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
+# b. Ensure the ENV_FILE variable is defined correctly.
+
+# Version 2.0
+# - No more plaintext credentials. Switched to using a private .env file.
 # Version 1.0
 # - Initial release.
 
-# Variables
-JAMF_PRO_URL="https://your-jamf-pro-url.com"  # Your Jamf Pro instance URL
-JAMF_API_USER="api_username"                 # Jamf Pro API username
-JAMF_API_PASS="api_password"                 # Jamf Pro API password
-LAPS_ADMIN_ACCOUNT="laps_admin_account"      # The LAPS-enabled admin account name
-TEAM_WEBHOOK_URL="https://your-teams-webhook-url.com" # Microsoft Teams webhook URL
+#!/bin/bash
+
+# Variable declaration 2.0 – .env file, no more plain text!
+ENV_FILE="self-service-laps-request.env"
+if [[ -f "$ENV_FILE" ]]; then
+  # Export variables from the .env file
+  export $(grep -v '^#' "$ENV_FILE" | xargs)
+else
+  echo "Environment file $ENV_FILE not found. Please ensure it exists and contains the required variables."
+  exit 1
+fi
+
+# Variable validation
+if [[ -z "$JAMF_PRO_URL" || -z "$JAMF_API_USER" || -z "$JAMF_API_PASS" || -z "$TEAM_WEBHOOK_URL" ]]; then
+  echo "One or more required environment variables are missing in $ENV_FILE."
+  exit 1
+fi
+
+# Check if LAPS_ADMIN_ACCOUNT is set as an environment variable
+if [[ -z "$LAPS_ADMIN_ACCOUNT" ]]; then
+  echo "The LAPS_ADMIN_ACCOUNT environment variable is not set. Please define it in $ENV_FILE or export it before running the script."
+  exit 1
+fi
 
 # Function to get a Jamf Pro API token
 get_jamf_token() {
