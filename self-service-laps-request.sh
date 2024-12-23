@@ -90,7 +90,7 @@ fi
 # Automatically copy the LAPS password to the clipboard
 echo -n "$PASSWORD" | pbcopy
 echo "The LAPS password has been copied to the clipboard."
-# Send a push notification to the user indicating the password was copied
+# Send a push notification to the user indicating the password was copied | TESTING ONLY
 osascript -e 'display notification "The LAPS password has been copied to the clipboard." with title "Jamf Self Service"'
 
 # Construct the Microsoft Teams webhook payload
