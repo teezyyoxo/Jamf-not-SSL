@@ -11,6 +11,8 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.4a
+# - More debugging.
 # Version 4.3a
 # - Added more debugging.
 # Version 4.2a
@@ -43,27 +45,39 @@ else
 fi
 
 # .env variable validation
-if [[ -z "$JAMF_PRO_URL" || -z "$API_CLIENT_ID" || -z "$API_CLIENT_SECRET" || -z "$TEAM_WEBHOOK_URL" || -z "$LAPS_ADMIN_ACCOUNT" ]]; then
+if [[ -z "$JAMF_PRO_URL" || -z "$JAMF_API_USER" || -z "$JAMF_API_PASS" || -z "$TEAM_WEBHOOK_URL" || -z "$LAPS_ADMIN_ACCOUNT" ]]; then
   echo "One or more required environment variables are missing. Please ensure the following variables are set in $ENV_FILE or exported:"
   echo "  - JAMF_PRO_URL"
-  echo "  - API_CLIENT_ID"
-  echo "  - API_CLIENT_SECRET"
+  echo "  - JAMF_API_USER"
+  echo "  - JAMF_API_PASS"
   echo "  - TEAM_WEBHOOK_URL"
   echo "  - LAPS_ADMIN_ACCOUNT"
   exit 1
 fi
 
-# Function to get a Jamf Pro API token using OAuth2 (Client Credentials Grant)
+# Function to get a Jamf Pro API token
 get_jamf_token() {
   local response
   response=$(curl -s -X POST "$JAMF_PRO_URL/api/v1/auth/token" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
     -d "client_id=$API_CLIENT_ID" \
     -d "client_secret=$API_CLIENT_SECRET" \
-    -d "grant_type=client_credentials")
+    -d 'grant_type=client_credentials')
   
   # DEBUGGING: Print raw response
-  echo "Response from Jamf Pro API: $response"
-  echo "$response" | grep -o '"token":"[^"]*' | cut -d'"' -f4
+  echo "Response from Jamf Pro API (Token Request): $response"
+  
+  # Extract the access token using jq
+  token=$(echo "$response" | jq -r '.access_token')
+  
+  # DEBUGGING: Print the token if available
+  if [[ -n "$token" ]]; then
+    echo "Access token retrieved: $token"
+  else
+    echo "Failed to retrieve access token"
+  fi
+  
+  echo "$token"
 }
 
 # Get the serial number of the current Mac
@@ -81,13 +95,16 @@ if [[ -z "$TOKEN" ]]; then
   exit 1
 fi
 
+# DEBUGGING: Print token for verification
+echo "Using API Token: $TOKEN"
+
 # Retrieve the computer ID (Management ID) using the serial number
 COMPUTER_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
   "$JAMF_PRO_URL/api/v1/computers-inventory?filter=serialNumber%20eq%20'$SERIAL_NUMBER'" | \
-  grep -o '"id":[0-9]*' | cut -d':' -f2)
-    # DEBUGGING: Print raw response
-    echo "Response from Jamf Pro for computer ID query: $response"
-    COMPUTER_ID=$(echo "$response" | grep -o '"id":[0-9]*' | cut -d':' -f2)
+  jq -r '.data[0].id')  # Use jq to parse JSON response
+  
+# DEBUGGING: Print raw response for computer ID query
+echo "Response from Jamf Pro for computer ID query: $COMPUTER_ID"
 
 if [[ -z "$COMPUTER_ID" ]]; then
   echo "Failed to retrieve the Management ID for serial number $SERIAL_NUMBER."
@@ -97,7 +114,10 @@ fi
 # Retrieve the LAPS password for the specified computer and admin account
 PASSWORD=$(curl -s -H "Authorization: Bearer $TOKEN" \
   "$JAMF_PRO_URL/api/v1/local-admin-password/$COMPUTER_ID" | \
-  grep -o '"password":"[^"]*' | cut -d'"' -f4)
+  jq -r '.password')  # Use jq to extract the password
+
+# DEBUGGING: Print raw response for password query
+echo "Response from Jamf Pro for LAPS password query: $PASSWORD"
 
 if [[ -z "$PASSWORD" ]]; then
   echo "Failed to retrieve the LAPS password for computer ID $COMPUTER_ID."
@@ -107,6 +127,7 @@ fi
 # Automatically copy the LAPS password to the clipboard
 echo -n "$PASSWORD" | pbcopy
 echo "The LAPS password has been copied to the clipboard."
+
 # Send a push notification to the user indicating the password was copied | TESTING ONLY
 osascript -e 'display notification "The LAPS password has been copied to the clipboard." with title "Jamf Self Service"'
 
