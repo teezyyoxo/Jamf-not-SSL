@@ -11,6 +11,8 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+# Version 4.9.6a
+# - Added missing function declaration for get_jamf_token. Derp.
 # Version 4.9.5a
 # - Now uses the correct API endpoint (/v2/local-admin-password/{client-management-id}/account/{username}/password)
 # Version 4.9.4a
@@ -85,7 +87,7 @@ echo "Jamf Pro Username: $JAMF_PRO_USERNAME"
 
 # Function to get a Jamf Pro API token using Basic Authentication
 # Now uses the CORRECT API endpoint/call lol (/v2/local-admin-password/{client-management-id}/account/{LAPSaccountName}/password)
-get_laps_password() {
+func get_laps_password() {
   local response
   local api_endpoint="$JAMF_PRO_URL/api/v2/local-admin-password/$CLIENT_MANAGEMENT_ID/account/$USERNAME/password"
 
