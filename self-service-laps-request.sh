@@ -90,7 +90,7 @@ echo "Jamf Pro Username: $JAMF_PRO_USERNAME"
 func get_laps_password() {
   local response
   local api_endpoint="$JAMF_PRO_URL/api/v2/local-admin-password/$CLIENT_MANAGEMENT_ID/account/$USERNAME/password"
-
+  
   echo "Querying Jamf Pro API for LAPS password..."
 
   # Perform the API request
