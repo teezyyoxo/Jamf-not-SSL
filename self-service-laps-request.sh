@@ -11,6 +11,11 @@
 # a. Create an .env file (saved in the same directory as the script, or get the exact path to it)
 # b. Ensure the ENV_FILE variable is defined correctly.
 
+
+# Version 4.9.7a
+# - Fixed: Added missing `get_jamf_token` function to properly retrieve the Jamf Pro API token.
+# - Improved: Implemented debug logging for the API token retrieval process to aid in troubleshooting.
+# - Error Handling: Enhanced error checking to ensure the script exits if the API token cannot be retrieved.
 # Version 4.9.6a
 # - Added missing function declaration for get_jamf_token. Derp.
 # Version 4.9.5a
@@ -87,7 +92,7 @@ echo "Jamf Pro Username: $JAMF_PRO_USERNAME"
 
 # Function to get a Jamf Pro API token using Basic Authentication
 # Now uses the CORRECT API endpoint/call lol (/v2/local-admin-password/{client-management-id}/account/{LAPSaccountName}/password)
-func get_laps_password() {
+get_laps_password() {
   local response
   local api_endpoint="$JAMF_PRO_URL/api/v2/local-admin-password/$CLIENT_MANAGEMENT_ID/account/$USERNAME/password"
   
@@ -139,12 +144,32 @@ if [[ -z "$COMPUTER_ID" ]]; then
   exit 1
 fi
 
-# Get API token
-TOKEN=$(get_jamf_token)
-if [[ -z "$TOKEN" ]]; then
-  echo "Failed to retrieve Jamf Pro API token."
-  exit 1
-fi
+# Function to get a Jamf Pro API token using Basic Authentication
+get_jamf_token() {
+  local response
+  local api_endpoint="$JAMF_PRO_URL/api/v1/auth/token"
+
+  echo "Requesting Jamf Pro API token..."
+
+  # Perform the API request to get the token
+  response=$(curl -s -X POST "$api_endpoint" \
+    -u "$JAMF_PRO_USERNAME:$JAMF_PRO_PASSWORD" \
+    -H "accept: application/json")
+
+  # DEBUG: Print the raw response for troubleshooting
+  echo "Response from Jamf Pro API token request: $response"
+
+  # Extract the token from the response
+  token=$(echo "$response" | jq -r '.token')
+
+  # Check if the token was successfully retrieved
+  if [[ -n "$token" && "$token" != "null" ]]; then
+    echo "$token"
+  else
+    echo "Failed to retrieve Jamf Pro API token."
+    exit 1
+  fi
+}
 
 # DEBUGGING: Print token for verification
 echo "Using API Token: $TOKEN"
